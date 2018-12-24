@@ -20,7 +20,6 @@ def affine_relu_forward(x, w, b):
     cache = (fc_cache, relu_cache)
     return out, cache
 
-
 def affine_relu_backward(dout, cache):
     """
     Backward pass for the affine-relu convenience layer
@@ -30,6 +29,43 @@ def affine_relu_backward(dout, cache):
     dx, dw, db = affine_backward(da, fc_cache)
     return dx, dw, db
 
+def affine_bn_relu_forward(x, w, b, gamma, beta, bn_param):
+    a1, fc_cache = affine_forward(x, w, b)
+    a2, bn_cache = batchnorm_forward(a1, gamma, beta, bn_param)
+    out, relu_cache = relu_forward(a2)
+    cache = (fc_cache, bn_cache, relu_cache)
+    return out, cache
+
+def affine_bn_relu_backward(dout, cache):
+    fc_cache, bn_cache, relu_cache = cache
+    da2 = relu_backward(dout, relu_cache)
+    da1, dgamma, dbeta = batchnorm_backward(da2, bn_cache)
+    dx, dw, db = affine_backward(da1, fc_cache)
+    return dx, dw, db, dgamma, dbeta
+
+def affine_drop_relu_forward(x, w, b, dropout_param):
+    out, (fc_cache, relu_cache) = affine_relu_forward(x, w, b)
+    out, dropout_cache = dropout_forward(out, dropout_param)
+    cache = (fc_cache, relu_cache, dropout_cache)
+    return out, cache
+
+def affine_drop_relu_backward(dout, cache):
+    fc_cache, relu_cache, dropout_cache = cache
+    dout_ = dropout_backward(dout, dropout_cache)
+    dx, dw, db = affine_relu_backward(dout_, (fc_cache, relu_cache))
+    return dx, dw, db
+
+def affine_bn_drop_relu_forward(x, w, b, gamma, beta, bn_param, dropout_param): 
+    out, (fc_cache, bn_cache, relu_cache) = affine_bn_relu_forward(x, w, b, gamma, beta, bn_param)
+    out, dropout_cache = dropout_forward(out, dropout_param)
+    cache = (fc_cache, bn_cache, dropout_cache)
+    return out, cache
+
+def affine_bn_drop_relu_backward(dout, cache):   
+    fc_cache, bn_cache, dropout_cache = cache
+    dout_ = dropout_backward(dout, dropout_cache)
+    dx, dw, db, dgamma, dbeta = affine_bn_relu_backward(dout_, (fc_cache, bn_cache, relu_cache))
+    return dx, dw, db, dgamma, dbeta   
 
 def conv_relu_forward(x, w, b, conv_param):
     """
